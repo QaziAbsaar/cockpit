@@ -22,6 +22,21 @@ function LoginRoute() {
   return token ? <Navigate to="/" replace /> : <Login />;
 }
 
+function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
+  const active = window.location.pathname === to;
+  return (
+    <Link
+      to={to}
+      className={
+        "block rounded-lg px-3 py-2 text-sm font-medium transition-colors " +
+        (active ? "bg-brand-soft text-brand" : "text-ink-soft hover:bg-black/5 hover:text-ink")
+      }
+    >
+      {children}
+    </Link>
+  );
+}
+
 function NavBar() {
   const { role, logout } = useAuth();
   const navigate = useNavigate();
@@ -32,19 +47,33 @@ function NavBar() {
   }
 
   return (
-    <nav>
-      <Link to="/">Chats</Link>
-      {role === "admin" && (
-        <>
-          {" | "}
-          <Link to="/settings">Settings</Link>
-          {" | "}
-          <Link to="/agents">Agents</Link>
-        </>
-      )}
-      {" | "}
-      <button onClick={handleLogout}>Log out</button>
+    <nav className="flex w-56 shrink-0 flex-col border-r border-border bg-surface p-4">
+      <span className="font-display mb-6 px-3 text-lg font-extrabold tracking-tight text-ink">Cockpit</span>
+      <div className="flex flex-1 flex-col gap-1">
+        <NavLink to="/">Chats</NavLink>
+        {role === "admin" && (
+          <>
+            <NavLink to="/settings">Settings</NavLink>
+            <NavLink to="/agents">Agents</NavLink>
+          </>
+        )}
+      </div>
+      <button
+        onClick={handleLogout}
+        className="rounded-lg px-3 py-2 text-left text-sm font-medium text-ink-soft transition-colors hover:bg-black/5 hover:text-ink"
+      >
+        Log out
+      </button>
     </nav>
+  );
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen bg-bg">
+      <NavBar />
+      <main className="flex-1 overflow-y-auto">{children}</main>
+    </div>
   );
 }
 
@@ -58,8 +87,9 @@ export function App() {
             path="/"
             element={
               <RequireToken>
-                <NavBar />
-                <ChatList />
+                <Shell>
+                  <ChatList />
+                </Shell>
               </RequireToken>
             }
           />
@@ -67,8 +97,9 @@ export function App() {
             path="/chats/:id"
             element={
               <RequireToken>
-                <NavBar />
-                <ChatDetail />
+                <Shell>
+                  <ChatDetail />
+                </Shell>
               </RequireToken>
             }
           />
@@ -76,8 +107,9 @@ export function App() {
             path="/settings"
             element={
               <RequireAdmin>
-                <NavBar />
-                <Settings />
+                <Shell>
+                  <Settings />
+                </Shell>
               </RequireAdmin>
             }
           />
@@ -85,8 +117,9 @@ export function App() {
             path="/agents"
             element={
               <RequireAdmin>
-                <NavBar />
-                <Agents />
+                <Shell>
+                  <Agents />
+                </Shell>
               </RequireAdmin>
             }
           />

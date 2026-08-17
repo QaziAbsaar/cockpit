@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api/client.js";
+import { Button, Card, Field, Input, Label, Select, Textarea } from "../components/ui/primitives.js";
 
 interface SettingsView {
   activeProvider: "deepseek" | "claude" | "openai" | "google";
@@ -9,6 +10,13 @@ interface SettingsView {
   hasOpenaiKey: boolean;
   hasGoogleKey: boolean;
 }
+
+const PROVIDER_LABELS: Record<string, string> = {
+  deepseek: "DeepSeek",
+  claude: "Claude",
+  openai: "OpenAI",
+  google: "Google"
+};
 
 export function Settings() {
   const [settings, setSettings] = useState<SettingsView | null>(null);
@@ -25,8 +33,8 @@ export function Settings() {
     });
   }, []);
 
-  if (error) return <p role="alert">{error}</p>;
-  if (!settings) return <p>Loading…</p>;
+  if (error) return <p role="alert" className="p-8 text-sm text-alert">{error}</p>;
+  if (!settings) return <p className="p-8 text-sm text-ink-soft">Loading…</p>;
 
   async function save() {
     const res = await apiFetch("/settings", {
@@ -44,40 +52,58 @@ export function Settings() {
   }
 
   return (
-    <div>
-      <label htmlFor="activeProvider">Active provider</label>
-      <select
-        id="activeProvider"
-        value={settings.activeProvider}
-        onChange={(e) => setSettings({ ...settings, activeProvider: e.target.value as SettingsView["activeProvider"] })}
-      >
-        <option value="deepseek">DeepSeek</option>
-        <option value="claude">Claude</option>
-        <option value="openai">OpenAI</option>
-        <option value="google">Google</option>
-      </select>
+    <div className="mx-auto max-w-2xl px-6 py-8">
+      <h1 className="font-display mb-6 text-2xl font-bold text-ink">Settings</h1>
 
-      {(["deepseek", "claude", "openai", "google"] as const).map((p) => (
-        <div key={p}>
-          <label htmlFor={`key-${p}`}>{p} API key</label>
-          <input
-            id={`key-${p}`}
-            type="password"
-            placeholder={settings[`has${p[0].toUpperCase()}${p.slice(1)}Key` as keyof SettingsView] ? "configured" : "not set"}
-            value={keys[p] ?? ""}
-            onChange={(e) => setKeys({ ...keys, [p]: e.target.value })}
+      <Card className="p-6">
+        <Field>
+          <Label htmlFor="activeProvider">Active provider</Label>
+          <Select
+            id="activeProvider"
+            value={settings.activeProvider}
+            onChange={(e) => setSettings({ ...settings, activeProvider: e.target.value as SettingsView["activeProvider"] })}
+          >
+            <option value="deepseek">DeepSeek</option>
+            <option value="claude">Claude</option>
+            <option value="openai">OpenAI</option>
+            <option value="google">Google</option>
+          </Select>
+        </Field>
+
+        <div className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-ink-soft">API keys</div>
+        {(["deepseek", "claude", "openai", "google"] as const).map((p) => {
+          const hasKey = settings[`has${p[0].toUpperCase()}${p.slice(1)}Key` as keyof SettingsView] as boolean;
+          return (
+            <Field key={p}>
+              <Label htmlFor={`key-${p}`} className="flex items-center justify-between">
+                <span>{PROVIDER_LABELS[p]} API key</span>
+                <span className={"text-xs font-normal " + (hasKey ? "text-brand" : "text-ink-soft")}>
+                  {hasKey ? "configured" : "not set"}
+                </span>
+              </Label>
+              <Input
+                id={`key-${p}`}
+                type="password"
+                placeholder={hasKey ? "configured" : "not set"}
+                value={keys[p] ?? ""}
+                onChange={(e) => setKeys({ ...keys, [p]: e.target.value })}
+              />
+            </Field>
+          );
+        })}
+
+        <Field>
+          <Label htmlFor="personaPrompt">Persona prompt</Label>
+          <Textarea
+            id="personaPrompt"
+            rows={4}
+            value={settings.personaPrompt}
+            onChange={(e) => setSettings({ ...settings, personaPrompt: e.target.value })}
           />
-        </div>
-      ))}
+        </Field>
 
-      <label htmlFor="personaPrompt">Persona prompt</label>
-      <textarea
-        id="personaPrompt"
-        value={settings.personaPrompt}
-        onChange={(e) => setSettings({ ...settings, personaPrompt: e.target.value })}
-      />
-
-      <button onClick={save}>Save</button>
+        <Button onClick={save}>Save</Button>
+      </Card>
     </div>
   );
 }
