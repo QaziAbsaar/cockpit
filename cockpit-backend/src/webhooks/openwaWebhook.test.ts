@@ -86,4 +86,22 @@ describe("POST /webhooks/openwa", () => {
     const convo = await prisma.conversation.findUnique({ where: { waChatId: "9999@c.us" } });
     expect(convo).toBeNull();
   });
+
+  it("returns 400 and creates nothing when chatId is missing", async () => {
+    const res = await request(app).post("/webhooks/openwa").send({
+      sessionId: "sess-1",
+      messageId: "wamid.5",
+      fromMe: false,
+      type: "chat",
+      body: "Missing chatId",
+      timestamp: 1700000400
+    });
+
+    expect(res.status).toBe(400);
+
+    const conversations = await prisma.conversation.findMany();
+    expect(conversations).toHaveLength(0);
+    const messages = await prisma.message.findMany();
+    expect(messages).toHaveLength(0);
+  });
 });
