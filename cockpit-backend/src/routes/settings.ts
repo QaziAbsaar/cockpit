@@ -39,10 +39,19 @@ settingsRouter.put("/", async (req, res) => {
       personaPrompt: string;
     }>;
 
-  const updated = await prisma.settings.upsert({
-    where: { id: 1 },
-    create: { id: 1, activeProvider, deepseekApiKey, claudeApiKey, openaiApiKey, googleApiKey, personaPrompt },
-    update: { activeProvider, deepseekApiKey, claudeApiKey, openaiApiKey, googleApiKey, personaPrompt }
-  });
-  res.json(redact(updated));
+  if (activeProvider !== undefined && !["deepseek", "claude", "openai", "google"].includes(activeProvider)) {
+    return res.status(400).json({ error: "activeProvider must be one of: deepseek, claude, openai, google" });
+  }
+
+  try {
+    const updated = await prisma.settings.upsert({
+      where: { id: 1 },
+      create: { id: 1, activeProvider, deepseekApiKey, claudeApiKey, openaiApiKey, googleApiKey, personaPrompt },
+      update: { activeProvider, deepseekApiKey, claudeApiKey, openaiApiKey, googleApiKey, personaPrompt }
+    });
+    res.json(redact(updated));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "internal server error" });
+  }
 });

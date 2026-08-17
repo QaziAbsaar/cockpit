@@ -45,4 +45,33 @@ describe("settings routes", () => {
     expect(stored?.claudeApiKey).toBe("sk-ant-xyz");
     expect(stored?.personaPrompt).toBe("You are Acme's support bot.");
   });
+
+  it("does not clobber an existing API key on a partial update", async () => {
+    const first = await request(app)
+      .put("/settings")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ claudeApiKey: "sk-ant-first" });
+    expect(first.status).toBe(200);
+    expect(first.body.hasClaudeKey).toBe(true);
+
+    const second = await request(app)
+      .put("/settings")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ personaPrompt: "updated persona only" });
+    expect(second.status).toBe(200);
+    expect(second.body.hasClaudeKey).toBe(true);
+
+    const stored = await prisma.settings.findUnique({ where: { id: 1 } });
+    expect(stored?.claudeApiKey).toBe("sk-ant-first");
+    expect(stored?.personaPrompt).toBe("updated persona only");
+  });
+
+  it("rejects an invalid activeProvider", async () => {
+    const res = await request(app)
+      .put("/settings")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ activeProvider: "not-a-real-provider" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/activeProvider must be one of/);
+  });
 });
