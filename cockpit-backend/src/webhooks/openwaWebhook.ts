@@ -1,6 +1,7 @@
 // src/webhooks/openwaWebhook.ts
 import { Router } from "express";
 import { Prisma } from "@prisma/client";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 import { prisma } from "../db/client.js";
 import type { OpenWaInboundWebhook } from "./types.js";
 import { handleAutoReply } from "../ai/autoReply.js";
@@ -44,7 +45,7 @@ async function runAutoReply(conversationId: string, broadcast: (e: WsEvent) => v
 export function createOpenwaWebhookRouter(broadcast: (e: WsEvent) => void, webhookSecret: string): Router {
   const router = Router();
 
-  router.post("/", async (req, res) => {
+  router.post("/", asyncHandler(async (req, res) => {
     const headerSecret = req.header("X-Webhook-Secret");
     if (!webhookSecret || headerSecret !== webhookSecret) {
       return res.status(401).json({ error: "unauthorized" });
@@ -107,7 +108,7 @@ export function createOpenwaWebhookRouter(broadcast: (e: WsEvent) => void, webho
     if (conversation.mode === "ai") {
       runAutoReply(conversation.id, broadcast).catch((err) => console.error("auto-reply failed:", err));
     }
-  });
+  }));
 
   return router;
 }

@@ -1,5 +1,6 @@
 // src/routes/messages.ts
 import { Router } from "express";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 import { prisma } from "../db/client.js";
 import { sendWaMessage, type OpenWaConfig } from "../openwa/client.js";
 import type { WsEvent } from "../ws/hub.js";
@@ -7,7 +8,7 @@ import type { WsEvent } from "../ws/hub.js";
 export function createMessagesRouter(waConfig: OpenWaConfig, broadcast: (e: WsEvent) => void): Router {
   const router = Router();
 
-  router.post("/:id/messages", async (req, res) => {
+  router.post("/:id/messages", asyncHandler(async (req, res) => {
     const { body } = req.body as { body?: string };
     if (!body) return res.status(400).json({ error: "body is required" });
 
@@ -34,7 +35,7 @@ export function createMessagesRouter(waConfig: OpenWaConfig, broadcast: (e: WsEv
       console.error(err);
       res.status(500).json({ error: "internal server error" });
     }
-  });
+  }));
 
   return router;
 }
