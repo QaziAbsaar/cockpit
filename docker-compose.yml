@@ -16,20 +16,29 @@ services:
       - postgres
     environment:
       DATABASE_URL: postgresql://cockpit:cockpit@postgres:5432/cockpit
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET must be set}
       OPENWA_BASE_URL: ${OPENWA_BASE_URL}
       OPENWA_API_KEY: ${OPENWA_API_KEY}
       OPENWA_SESSION_ID: ${OPENWA_SESSION_ID}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
       PORT: 4000
     ports:
       - "4000:4000"
+    restart: unless-stopped
 
   cockpit-dashboard:
-    build: ./cockpit-dashboard
+    build:
+      context: ./cockpit-dashboard
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_WS_URL: ${VITE_WS_URL}
     depends_on:
       - cockpit-backend
     ports:
       - "5173:5173"
+    restart: unless-stopped
 
 volumes:
   cockpit_pg_data:
