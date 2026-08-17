@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch } from "../api/client.js";
+import { useConversationSocket } from "../ws/useConversationSocket.js";
 
 interface MessageRecord {
   id: string;
@@ -31,6 +32,10 @@ export function ChatDetail() {
   useEffect(() => {
     load();
   }, [id]);
+
+  useConversationSocket((event) => {
+    if (event.payload.conversationId === id) load();
+  });
 
   async function toggleMode() {
     if (!conversation) return;

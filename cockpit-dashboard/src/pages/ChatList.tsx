@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api/client.js";
+import { useConversationSocket } from "../ws/useConversationSocket.js";
 
 interface ConversationSummary {
   id: string;
@@ -18,6 +19,10 @@ export function ChatList() {
       .then((res) => res.json())
       .then(setConversations);
   }, []);
+
+  useConversationSocket(() => {
+    apiFetch("/conversations").then((res) => res.json()).then(setConversations);
+  });
 
   return (
     <ul>
