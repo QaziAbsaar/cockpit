@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface CockpitEvent {
   type: string;
@@ -6,12 +6,15 @@ interface CockpitEvent {
 }
 
 export function useConversationSocket(onEvent: (event: CockpitEvent) => void): void {
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
+
   useEffect(() => {
     const url = import.meta.env.VITE_WS_URL ?? "ws://localhost:4000";
     const socket = new WebSocket(url);
     socket.onmessage = (e) => {
-      onEvent(JSON.parse(e.data) as CockpitEvent);
+      onEventRef.current(JSON.parse(e.data) as CockpitEvent);
     };
     return () => socket.close();
-  }, [onEvent]);
+  }, []);
 }

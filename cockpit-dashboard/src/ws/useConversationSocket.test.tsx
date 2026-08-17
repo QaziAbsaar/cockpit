@@ -37,4 +37,30 @@ describe("useConversationSocket", () => {
     unmount();
     expect(socket.closed).toBe(true);
   });
+
+  it("does not reconnect when a new onEvent reference is passed on re-render", () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket as unknown as typeof WebSocket);
+    const onEventA = vi.fn();
+    const onEventB = vi.fn();
+
+    const { rerender } = renderHook(({ onEvent }) => useConversationSocket(onEvent), {
+      initialProps: { onEvent: onEventA },
+    });
+
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    const socket = FakeWebSocket.instances[0];
+    expect(socket.closed).toBe(false);
+
+    // Re-render with a brand-new inline closure, as call sites like ChatList/ChatDetail do.
+    rerender({ onEvent: onEventB });
+
+    // Still the same single socket — no reconnect happened.
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    expect(socket.closed).toBe(false);
+
+    // The latest onEvent is the one invoked, proving the ref was updated.
+    socket.emit({ type: "new_message", payload: { conversationId: "xyz" } });
+    expect(onEventB).toHaveBeenCalledWith({ type: "new_message", payload: { conversationId: "xyz" } });
+    expect(onEventA).not.toHaveBeenCalled();
+  });
 });
