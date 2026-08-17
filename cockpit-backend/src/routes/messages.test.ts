@@ -10,7 +10,7 @@ import { createMessagesRouter } from "./messages.js";
 const waConfig = { baseUrl: "http://openwa.local", apiKey: "key", sessionId: "sess-1" };
 const app = express();
 app.use(express.json());
-app.use("/conversations", requireAuth(), createMessagesRouter(waConfig));
+app.use("/conversations", requireAuth(), createMessagesRouter(waConfig, () => {}));
 
 const token = signAgentToken({ agentId: "agent-42", role: "agent" });
 

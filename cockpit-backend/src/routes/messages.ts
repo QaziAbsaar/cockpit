@@ -2,8 +2,9 @@
 import { Router } from "express";
 import { prisma } from "../db/client.js";
 import { sendWaMessage, type OpenWaConfig } from "../openwa/client.js";
+import type { WsEvent } from "../ws/hub.js";
 
-export function createMessagesRouter(waConfig: OpenWaConfig): Router {
+export function createMessagesRouter(waConfig: OpenWaConfig, broadcast: (e: WsEvent) => void): Router {
   const router = Router();
 
   router.post("/:id/messages", async (req, res) => {
@@ -27,6 +28,7 @@ export function createMessagesRouter(waConfig: OpenWaConfig): Router {
           waMessageId: sent.waMessageId
         }
       });
+      broadcast({ type: "new_message", payload: { conversationId: conversation.id } });
       res.status(201).json(message);
     } catch (err) {
       console.error(err);

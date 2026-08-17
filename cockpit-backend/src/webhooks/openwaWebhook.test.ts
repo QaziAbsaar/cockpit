@@ -3,11 +3,11 @@ import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
 import request from "supertest";
 import express from "express";
 import { prisma } from "../db/client.js";
-import { openwaWebhookRouter } from "./openwaWebhook.js";
+import { createOpenwaWebhookRouter } from "./openwaWebhook.js";
 
 const app = express();
 app.use(express.json());
-app.use("/webhooks/openwa", openwaWebhookRouter);
+app.use("/webhooks/openwa", createOpenwaWebhookRouter(() => {}));
 
 afterEach(async () => {
   await prisma.message.deleteMany();
