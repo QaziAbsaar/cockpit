@@ -20,6 +20,12 @@ export interface AppDeps {
 export function buildApp(deps: AppDeps): express.Express {
   const app = express();
   app.use(cors());
+
+  // Mounted before the app-wide json parser: the webhook router parses its own
+  // body via a `verify` hook that captures the raw bytes, needed to validate the
+  // OpenWA HMAC signature. If the global parser ran first, the raw buffer would
+  // be gone and every signature check would fail.
+  app.use("/webhooks/openwa", createOpenwaWebhookRouter(deps.broadcast, deps.webhookSecret));
   app.use(express.json());
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
@@ -29,7 +35,6 @@ export function buildApp(deps: AppDeps): express.Express {
   app.use("/settings", requireAuth(["admin"]), settingsRouter);
   app.use("/conversations", requireAuth(), conversationsRouter);
   app.use("/conversations", requireAuth(), createMessagesRouter(deps.waConfig, deps.broadcast));
-  app.use("/webhooks/openwa", createOpenwaWebhookRouter(deps.broadcast, deps.webhookSecret));
 
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error(err);

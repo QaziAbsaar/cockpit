@@ -4,8 +4,10 @@ import { sendWaMessage } from "./client.js";
 describe("sendWaMessage", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("posts to the session's send endpoint with the API key header", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: "wamid.123" }) });
+  it("posts to the session's send-text endpoint with the API key header", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ messageId: "wamid.123", timestamp: 1700000000 }) });
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await sendWaMessage(
@@ -16,7 +18,7 @@ describe("sendWaMessage", () => {
 
     expect(result).toEqual({ waMessageId: "wamid.123" });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://openwa.local/api/sessions/sess-1/messages/send",
+      "http://openwa.local/api/sessions/sess-1/messages/send-text",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({ "X-API-Key": "key-1" }),

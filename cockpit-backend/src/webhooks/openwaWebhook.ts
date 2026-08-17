@@ -1,9 +1,10 @@
 // src/webhooks/openwaWebhook.ts
-import { Router } from "express";
+import crypto from "node:crypto";
+import express, { Router, type Request } from "express";
 import { Prisma } from "@prisma/client";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { prisma } from "../db/client.js";
-import type { OpenWaInboundWebhook } from "./types.js";
+import type { OpenWaWebhookEnvelope } from "./types.js";
 import { handleAutoReply } from "../ai/autoReply.js";
 import { resolveProvider } from "../llm/registry.js";
 import { createDeepSeekProvider } from "../llm/providers/deepseek.js";
@@ -42,28 +43,63 @@ async function runAutoReply(conversationId: string, broadcast: (e: WsEvent) => v
   broadcast({ type: "conversation_updated", payload: { conversationId } });
 }
 
+// Raw request body captured by the json parser's verify hook below. The HMAC
+// signature from OpenWA covers the exact bytes sent, so re-stringifying the
+// parsed body would break verification — we must keep the original buffer.
+type RawBodyRequest = Request & { rawBody?: Buffer };
+
+// Verifies the `X-OpenWA-Signature: sha256=<hex>` header: HMAC-SHA256 of the raw
+// request body keyed with the webhook secret, compared in constant time.
+function hasValidSignature(secret: string, header: string | undefined, rawBody: Buffer | undefined): boolean {
+  if (!header || !rawBody || !secret) return false;
+  const match = /^sha256=([0-9a-f]{64})$/i.exec(header);
+  if (!match) return false;
+  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest();
+  const provided = Buffer.from(match[1], "hex");
+  return provided.length === expected.length && crypto.timingSafeEqual(provided, expected);
+}
+
 export function createOpenwaWebhookRouter(broadcast: (e: WsEvent) => void, webhookSecret: string): Router {
   const router = Router();
 
+  // Parse JSON here (scoped to this route) rather than relying on the app-wide
+  // parser so the `verify` hook can capture the raw body for signature checking.
+  router.use(
+    express.json({
+      verify: (req, _res, buf) => {
+        (req as RawBodyRequest).rawBody = buf;
+      }
+    })
+  );
+
   router.post("/", asyncHandler(async (req, res) => {
-    const headerSecret = req.header("X-Webhook-Secret");
-    if (!webhookSecret || headerSecret !== webhookSecret) {
+    const rawBody = (req as RawBodyRequest).rawBody;
+    if (!hasValidSignature(webhookSecret, req.header("X-OpenWA-Signature"), rawBody)) {
       return res.status(401).json({ error: "unauthorized" });
     }
 
-    const payload = req.body as OpenWaInboundWebhook;
+    const envelope = req.body as OpenWaWebhookEnvelope;
+    const data = envelope?.data;
 
-    if (!payload.chatId || !payload.messageId) {
-      return res.status(400).json({ error: "chatId and messageId are required" });
+    // We only consume inbound text/attachment messages. Anything else the
+    // customer registers for (acks, status, session events) is not our concern.
+    if (!envelope || envelope.event !== "message.received" || !data?.id || !data.from) {
+      return res.status(400).json({ error: "a message.received envelope with data.id and data.from is required" });
     }
 
-    if (payload.fromMe) {
+    // Defensive, not redundant: OpenWA's own inbound projector (MessageProjector.handleInboundMessage)
+    // has no fromMe gate of its own — it relies entirely on the engine only invoking it from the
+    // inbound-only onMessage callback. Nothing stops a fromMe payload from reaching this webhook if
+    // that contract is ever violated (a plugin's `message:received` hook mutating the field, a future
+    // engine bug, etc.), so this check is load-bearing, not just belt-and-suspenders.
+    if (data.fromMe) {
       return res.status(200).json({ ignored: true });
     }
 
-    // Redelivery guard: OpenWA (or any webhook sender) may retry the same event.
-    // If we've already recorded this waMessageId, this is a no-op redelivery.
-    const existing = await prisma.message.findUnique({ where: { waMessageId: payload.messageId } });
+    // Redelivery guard: OpenWA retries failed deliveries (default 3 attempts,
+    // exponential backoff), so the same waMessageId can arrive again. If we've
+    // already recorded it, this is a no-op redelivery.
+    const existing = await prisma.message.findUnique({ where: { waMessageId: data.id } });
     if (existing) {
       return res.status(200).json({ deduped: true });
     }
@@ -71,12 +107,12 @@ export function createOpenwaWebhookRouter(broadcast: (e: WsEvent) => void, webho
     let conversation;
     try {
       conversation = await prisma.conversation.upsert({
-        where: { waChatId: payload.chatId },
-        create: { waChatId: payload.chatId },
+        where: { waChatId: data.from },
+        create: { waChatId: data.from },
         update: {}
       });
 
-      const body = payload.type === "chat" ? payload.body : "[unsupported attachment]";
+      const body = data.type === "text" ? data.body : "[unsupported attachment]";
 
       await prisma.message.create({
         data: {
@@ -84,7 +120,7 @@ export function createOpenwaWebhookRouter(broadcast: (e: WsEvent) => void, webho
           direction: "in",
           sender: "customer",
           body,
-          waMessageId: payload.messageId
+          waMessageId: data.id
         }
       });
     } catch (err) {
