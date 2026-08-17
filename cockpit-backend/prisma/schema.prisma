@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AgentRole {
+  admin
+  agent
+}
+
+enum ConversationMode {
+  ai
+  human
+}
+
+enum MessageDirection {
+  in
+  out
+}
+
+enum LLMProviderName {
+  deepseek
+  claude
+  openai
+  google
+}
+
+model Agent {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  passwordHash  String
+  role          AgentRole
+  createdAt     DateTime       @default(now())
+  conversations Conversation[] @relation("AssignedAgent")
+}
+
+model Conversation {
+  id              String            @id @default(uuid())
+  waChatId        String            @unique
+  mode            ConversationMode  @default(ai)
+  assignedAgentId String?
+  assignedAgent   Agent?            @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  needsAttention  Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  messages        Message[]
+}
+
+model Message {
+  id             String            @id @default(uuid())
+  conversationId String
+  conversation   Conversation      @relation(fields: [conversationId], references: [id])
+  direction      MessageDirection
+  sender         String
+  body           String
+  waMessageId    String?
+  createdAt      DateTime          @default(now())
+}
+
+model Settings {
+  id             Int              @id @default(1)
+  activeProvider LLMProviderName  @default(deepseek)
+  deepseekApiKey String?
+  claudeApiKey   String?
+  openaiApiKey   String?
+  googleApiKey   String?
+  personaPrompt  String           @default("You are a helpful business assistant.")
+}
