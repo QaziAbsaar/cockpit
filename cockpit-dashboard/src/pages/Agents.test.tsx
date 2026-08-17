@@ -27,4 +27,15 @@ describe("Agents page", () => {
       expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/agents"), expect.objectContaining({ method: "POST" }))
     );
   });
+
+  it("shows an error instead of crashing when the agents request fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({ error: "insufficient role" }) })
+    );
+
+    render(<Agents />);
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
 });

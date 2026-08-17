@@ -71,4 +71,38 @@ describe("ChatDetail", () => {
       )
     );
   });
+
+  it("clears needsAttention when toggling mode", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string, opts?: RequestInit) => {
+      if (opts?.method === "PATCH") {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          id: "3",
+          waChatId: "333@c.us",
+          mode: "ai",
+          needsAttention: true,
+          messages: []
+        })
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAt("3");
+
+    const toggleButton = await screen.findByRole("button", { name: /mode: ai/i });
+    fireEvent.click(toggleButton);
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/conversations/3/mode"),
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ mode: "human", needsAttention: false })
+        })
+      )
+    );
+  });
 });

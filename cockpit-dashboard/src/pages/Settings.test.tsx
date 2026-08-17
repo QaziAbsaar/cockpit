@@ -35,4 +35,15 @@ describe("Settings page", () => {
       )
     );
   });
+
+  it("shows an error instead of crashing when the settings request fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({ error: "insufficient role" }) })
+    );
+
+    render(<Settings />);
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
 });

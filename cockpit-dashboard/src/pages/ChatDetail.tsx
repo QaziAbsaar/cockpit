@@ -40,7 +40,10 @@ export function ChatDetail() {
   async function toggleMode() {
     if (!conversation) return;
     const nextMode = conversation.mode === "ai" ? "human" : "ai";
-    await apiFetch(`/conversations/${id}/mode`, { method: "PATCH", body: JSON.stringify({ mode: nextMode }) });
+    await apiFetch(`/conversations/${id}/mode`, {
+      method: "PATCH",
+      body: JSON.stringify({ mode: nextMode, needsAttention: false })
+    });
     load();
   }
 

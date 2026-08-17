@@ -13,11 +13,19 @@ interface SettingsView {
 export function Settings() {
   const [settings, setSettings] = useState<SettingsView | null>(null);
   const [keys, setKeys] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch("/settings").then((res) => res.json()).then(setSettings);
+    apiFetch("/settings").then(async (res) => {
+      if (!res.ok) {
+        setError("Failed to load settings.");
+        return;
+      }
+      setSettings(await res.json());
+    });
   }, []);
 
+  if (error) return <p role="alert">{error}</p>;
   if (!settings) return <p>Loading…</p>;
 
   async function save() {

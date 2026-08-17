@@ -10,16 +10,26 @@ interface AgentRecord {
 
 export function Agents() {
   const [agents, setAgents] = useState<AgentRecord[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"admin" | "agent">("agent");
 
   function load() {
-    apiFetch("/agents").then((res) => res.json()).then(setAgents);
+    apiFetch("/agents").then(async (res) => {
+      if (!res.ok) {
+        setError("Failed to load agents.");
+        return;
+      }
+      setError(null);
+      setAgents(await res.json());
+    });
   }
 
   useEffect(load, []);
+
+  if (error) return <p role="alert">{error}</p>;
 
   async function addAgent() {
     await apiFetch("/agents", { method: "POST", body: JSON.stringify({ name, email, password, role }) });
