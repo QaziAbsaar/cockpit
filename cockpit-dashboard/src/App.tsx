@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext.js";
 import { Login } from "./pages/Login.js";
+import { ChatList } from "./pages/ChatList.js";
 
 function RequireToken({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
@@ -17,7 +18,7 @@ export function App() {
             path="/"
             element={
               <RequireToken>
-                <div>Chat list placeholder — replaced in Task 19</div>
+                <ChatList />
               </RequireToken>
             }
           />
