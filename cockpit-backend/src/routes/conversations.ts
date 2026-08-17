@@ -2,22 +2,29 @@
 import { Router } from "express";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db/client.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
 export const conversationsRouter = Router();
 
-conversationsRouter.get("/", async (_req, res) => {
-  const conversations = await prisma.conversation.findMany({ orderBy: { updatedAt: "desc" } });
-  res.json(conversations);
-});
+conversationsRouter.get(
+  "/",
+  asyncHandler(async (_req, res) => {
+    const conversations = await prisma.conversation.findMany({ orderBy: { updatedAt: "desc" } });
+    res.json(conversations);
+  })
+);
 
-conversationsRouter.get("/:id", async (req, res) => {
-  const conversation = await prisma.conversation.findUnique({
-    where: { id: req.params.id },
-    include: { messages: { orderBy: { createdAt: "asc" } } }
-  });
-  if (!conversation) return res.status(404).json({ error: "conversation not found" });
-  res.json(conversation);
-});
+conversationsRouter.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: req.params.id },
+      include: { messages: { orderBy: { createdAt: "asc" } } }
+    });
+    if (!conversation) return res.status(404).json({ error: "conversation not found" });
+    res.json(conversation);
+  })
+);
 
 conversationsRouter.patch("/:id/mode", async (req, res) => {
   const { mode, needsAttention } = req.body as { mode?: "ai" | "human"; needsAttention?: boolean };

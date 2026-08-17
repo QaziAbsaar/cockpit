@@ -14,6 +14,7 @@ import type { WsEvent } from "./ws/hub.js";
 export interface AppDeps {
   waConfig: OpenWaConfig;
   broadcast: (e: WsEvent) => void;
+  webhookSecret: string;
 }
 
 export function buildApp(deps: AppDeps): express.Express {
@@ -28,7 +29,14 @@ export function buildApp(deps: AppDeps): express.Express {
   app.use("/settings", requireAuth(["admin"]), settingsRouter);
   app.use("/conversations", requireAuth(), conversationsRouter);
   app.use("/conversations", requireAuth(), createMessagesRouter(deps.waConfig, deps.broadcast));
-  app.use("/webhooks/openwa", createOpenwaWebhookRouter(deps.broadcast));
+  app.use("/webhooks/openwa", createOpenwaWebhookRouter(deps.broadcast, deps.webhookSecret));
+
+  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error(err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "internal server error" });
+    }
+  });
 
   return app;
 }

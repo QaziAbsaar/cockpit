@@ -4,6 +4,11 @@ import http from "node:http";
 import { buildApp } from "./app.js";
 import { createWsHub } from "./ws/hub.js";
 
+const webhookSecret = process.env.WEBHOOK_SECRET;
+if (!webhookSecret) {
+  throw new Error("WEBHOOK_SECRET environment variable is required");
+}
+
 const server = http.createServer();
 const hub = createWsHub(server);
 
@@ -13,7 +18,8 @@ const app = buildApp({
     apiKey: process.env.OPENWA_API_KEY ?? "",
     sessionId: process.env.OPENWA_SESSION_ID ?? ""
   },
-  broadcast: (event) => hub.broadcast(event)
+  broadcast: (event) => hub.broadcast(event),
+  webhookSecret
 });
 
 server.on("request", app);

@@ -58,7 +58,7 @@ model Message {
   direction      MessageDirection
   sender         String
   body           String
-  waMessageId    String?
+  waMessageId    String?           @unique
   createdAt      DateTime          @default(now())
 }
 

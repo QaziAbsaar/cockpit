@@ -7,7 +7,8 @@ describe("buildApp", () => {
   it("exposes a health check", async () => {
     const app = buildApp({
       waConfig: { baseUrl: "http://openwa.local", apiKey: "k", sessionId: "s" },
-      broadcast: () => {}
+      broadcast: () => {},
+      webhookSecret: "test-webhook-secret"
     });
     const res = await request(app).get("/health");
     expect(res.status).toBe(200);

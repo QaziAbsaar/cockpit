@@ -2,6 +2,7 @@
 import { Router } from "express";
 import { prisma } from "../db/client.js";
 import type { LLMProviderName } from "../llm/types.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
 export const settingsRouter = Router();
 
@@ -23,10 +24,13 @@ function redact(settings: {
   };
 }
 
-settingsRouter.get("/", async (_req, res) => {
-  const settings = await prisma.settings.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} });
-  res.json(redact(settings));
-});
+settingsRouter.get(
+  "/",
+  asyncHandler(async (_req, res) => {
+    const settings = await prisma.settings.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} });
+    res.json(redact(settings));
+  })
+);
 
 settingsRouter.put("/", async (req, res) => {
   const { activeProvider, deepseekApiKey, claudeApiKey, openaiApiKey, googleApiKey, personaPrompt } =

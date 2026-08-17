@@ -13,9 +13,10 @@ export async function handleAutoReply(
     const conversation = await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } });
     const priorMessages = await prisma.message.findMany({
       where: { conversationId },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
       take: 20
     });
+    priorMessages.reverse();
 
     const history: ChatMessage[] = priorMessages.map((m) => ({
       role: m.direction === "in" ? "user" : "assistant",

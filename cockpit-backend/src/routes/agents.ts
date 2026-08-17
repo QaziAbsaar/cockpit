@@ -3,15 +3,19 @@ import { Router } from "express";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db/client.js";
 import { hashPassword } from "../auth/password.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
 export const agentsRouter = Router();
 
-agentsRouter.get("/", async (_req, res) => {
-  const agents = await prisma.agent.findMany({
-    select: { id: true, name: true, email: true, role: true, createdAt: true }
-  });
-  res.json(agents);
-});
+agentsRouter.get(
+  "/",
+  asyncHandler(async (_req, res) => {
+    const agents = await prisma.agent.findMany({
+      select: { id: true, name: true, email: true, role: true, createdAt: true }
+    });
+    res.json(agents);
+  })
+);
 
 agentsRouter.post("/", async (req, res) => {
   const { name, email, password, role } = req.body as {
@@ -33,6 +37,7 @@ agentsRouter.post("/", async (req, res) => {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return res.status(409).json({ error: "an agent with this email already exists" });
     }
+    console.error(err);
     res.status(500).json({ error: "internal server error" });
   }
 });
@@ -45,6 +50,7 @@ agentsRouter.delete("/:id", async (req, res) => {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
       return res.status(404).json({ error: "agent not found" });
     }
+    console.error(err);
     res.status(500).json({ error: "internal server error" });
   }
 });
