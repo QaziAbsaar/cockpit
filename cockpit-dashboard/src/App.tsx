@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./auth/AuthContext.js";
 import { Login } from "./pages/Login.js";
 import { ChatList } from "./pages/ChatList.js";
 import { ChatDetail } from "./pages/ChatDetail.js";
+import { Settings } from "./pages/Settings.js";
 
 function RequireToken({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
@@ -28,6 +29,14 @@ export function App() {
             element={
               <RequireToken>
                 <ChatDetail />
+              </RequireToken>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireToken>
+                <Settings />
               </RequireToken>
             }
           />
