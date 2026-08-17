@@ -1,9 +1,14 @@
 import jwt from "jsonwebtoken";
 
-const SECRET = process.env.JWT_SECRET;
-if (!SECRET) {
-  throw new Error("JWT_SECRET environment variable is required");
+function requireSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET environment variable is required");
+  }
+  return secret;
 }
+
+const SECRET = requireSecret();
 
 export interface AgentTokenPayload {
   agentId: string;
