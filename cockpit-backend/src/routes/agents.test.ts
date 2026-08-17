@@ -50,4 +50,34 @@ describe("agents routes", () => {
     const res = await request(app).get("/agents");
     expect(res.status).toBe(401);
   });
+
+  it("returns 409 when creating an agent with a duplicate email", async () => {
+    const first = await request(app)
+      .post("/agents")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ name: "Dup One", email: "dup@test.com", password: "pw123456", role: "agent" });
+    expect(first.status).toBe(201);
+
+    const second = await request(app)
+      .post("/agents")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ name: "Dup Two", email: "dup@test.com", password: "pw123456", role: "agent" });
+    expect(second.status).toBe(409);
+    expect(second.body.error).toBeTypeOf("string");
+  });
+
+  it("returns 404 when deleting a nonexistent agent id", async () => {
+    const res = await request(app)
+      .delete("/agents/00000000-0000-0000-0000-000000000000")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 400 when creating an agent with an invalid role", async () => {
+    const res = await request(app)
+      .post("/agents")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ name: "Bad Role", email: "badrole@test.com", password: "pw123456", role: "superadmin" });
+    expect(res.status).toBe(400);
+  });
 });
