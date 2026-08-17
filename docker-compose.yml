@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: cockpit
+      POSTGRES_PASSWORD: cockpit
+      POSTGRES_DB: cockpit
+    volumes:
+      - cockpit_pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  cockpit-backend:
+    build: ./cockpit-backend
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://cockpit:cockpit@postgres:5432/cockpit
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      OPENWA_BASE_URL: ${OPENWA_BASE_URL}
+      OPENWA_API_KEY: ${OPENWA_API_KEY}
+      OPENWA_SESSION_ID: ${OPENWA_SESSION_ID}
+      PORT: 4000
+    ports:
+      - "4000:4000"
+
+  cockpit-dashboard:
+    build: ./cockpit-dashboard
+    depends_on:
+      - cockpit-backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  cockpit_pg_data:
